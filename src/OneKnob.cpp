@@ -1,5 +1,4 @@
 #include "plugin.hpp"
-#include <iostream>
 
 struct OneKnob : Module
 {
@@ -27,17 +26,20 @@ struct OneKnob : Module
     };
 
     const float c_threshold = 1.f / 128.f;
-    float m_knob {};
-    float m_value {};
-    ParamWidget *m_touchedParam {};
-    bool m_picked {};
-    bool m_isCV {};
+    float m_knob;
+    float m_value;
+    ParamWidget *m_touchedParam;
+    bool m_picked;
+    bool m_isCV;
+    dsp::ClockDivider m_divider {};
 
     OneKnob()
     {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
         configParam(KNOB_PARAM, 0.f, 1.f, 0.f, "Map");
-		configParam(MODE_PARAM, 0.f, 1.f, 0.f, "Absolute mode");
+        configParam(MODE_PARAM, 0.f, 1.f, 0.f, "Absolute mode");
+        m_divider.setDivision(32);
+        this->onReset();
     }
 
     bool isPicked(float value)
@@ -50,46 +52,59 @@ struct OneKnob : Module
         return m_picked;
     };
 
+    void onReset() override
+    {
+        Module::onReset();
+        m_knob = 0.f;
+        m_value = 0.f;
+        m_touchedParam = NULL;
+        m_picked = false;
+        m_isCV = false;
+    }
+
     void process(const ProcessArgs& args) override
     {
-        bool isCV = inputs[CV_INPUT].isConnected();
-        if(isCV != m_isCV)
+        if(m_divider.process())
         {
-            m_isCV = isCV;
-            m_picked = false;
-        }
-
-        float knob = isCV ? inputs[CV_INPUT].getVoltage() / 10.f :
-                                                      params[KNOB_PARAM].getValue();
-        if(knob != m_knob)
-        {
-            m_knob = knob;
-
-            ParamWidget *touchedParam = APP->scene->rack->touchedParam;
-            if(touchedParam)
+            bool isCV = inputs[CV_INPUT].isConnected();
+            if(isCV != m_isCV)
             {
-                ParamQuantity *quantity = touchedParam->paramQuantity;
-                if(quantity && quantity->isBounded())
-                {
-                    bool absMode = params[MODE_PARAM].getValue() > 0.f;
-                    if(!absMode && (touchedParam != m_touchedParam))
-                    {
-                        m_touchedParam = touchedParam;
-                        m_picked = false;
-                    }
+                m_isCV = isCV;
+                m_picked = false;
+            }
 
-                    if(quantity->module != this)
+            float knob = isCV ? clamp(inputs[CV_INPUT].getVoltage() / 10.f, 0.f, 1.f) :
+                                params[KNOB_PARAM].getValue();
+            if(knob != m_knob)
+            {
+                m_knob = knob;
+
+                ParamWidget *touchedParam = APP->scene->rack->touchedParam;
+                if(touchedParam)
+                {
+                    ParamQuantity *quantity = touchedParam->paramQuantity;
+                    if(quantity && quantity->isBounded())
                     {
-                        if(absMode || this->isPicked(quantity->getScaledValue()))
+                        bool absMode = params[MODE_PARAM].getValue() > 0.f;
+                        if(!absMode && (touchedParam != m_touchedParam))
                         {
-                            quantity->setScaledValue(knob);
-                            m_value = quantity->getScaledValue();
+                            m_touchedParam = touchedParam;
+                            m_picked = false;
+                        }
+
+                        if(quantity->module != this)
+                        {
+                            if(absMode || this->isPicked(quantity->getScaledValue()))
+                            {
+                                quantity->setScaledValue(knob);
+                                m_value = quantity->getScaledValue();
+                            }
                         }
                     }
                 }
             }
         }
-	}
+    }
 };
 
 
