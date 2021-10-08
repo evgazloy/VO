@@ -1,0 +1,13 @@
+/build
+/dist
+/plugin.so
+/plugin.dylib
+/plugin.dll
+.DS_Store
+*.cflags
+*.config
+*.creator
+*.cxxflags
+*.files
+*.includes
+*.user
