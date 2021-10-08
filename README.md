@@ -4,7 +4,7 @@ Modules for [VCV Rack](https://github.com/VCVRack/Rack)
 ----
 
 ## OneKnob
-![OneKnob](res/OneKnob.svg)  
+![OneKnob](doc/OneKnob.png)  
 Allow controlling the last touched parameter by midi controller.  
 Map the knob to CC message with MIDI-MAP module or connect CV output of MIDI-CC module to CV input.  
 Click on the parameter you want to control.  
