@@ -5,7 +5,7 @@ Plugin* pluginInstance;
 
 
 void init(Plugin* p) {
-	pluginInstance = p;
+    pluginInstance = p;
 
-	p->addModel(modelOneKnob);
+    p->addModel(modelOneKnob);
 }
